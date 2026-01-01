@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Key.json Viewer</title>
+<style>
+body {
+    margin: 0;
+    background: #020617;
+    color: #e5e7eb;
+    font-family: monospace;
+}
+pre {
+    white-space: pre-wrap;
+    word-break: break-word;
+    padding: 16px;
+}
+</style>
+</head>
+<body>
+
+<pre id="json">Loading...</pre>
+
+<script>
+const JSON_URL = "https://example.com/data.json"; // 🔴 PUT URL HERE
+
+fetch(JSON_URL)
+    .then(res => res.text())   // keep exact text
+    .then(text => {
+        document.getElementById("json").textContent = text;
+    })
+    .catch(err => {
+        document.getElementById("json").textContent = "Error loading JSON";
+    });
+</script>
+
+</body>
+</html>
