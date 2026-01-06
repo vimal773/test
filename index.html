@@ -2,22 +2,142 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>JSON Viewer</title>
+<title>Admin Panel – Firebase Viewer</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
-html, body {
-    margin: 0;
-    height: 100%;
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #020617;
+  color: #e5e7eb;
 }
-iframe {
-    width: 100%;
-    height: 100%;
-    border: none;
+
+.container {
+  max-width: 1200px;
+  margin: auto;
+  padding: 20px;
+}
+
+.card {
+  background: #0f172a;
+  padding: 16px;
+  border-radius: 14px;
+  margin-bottom: 20px;
+}
+
+h1, h2 {
+  margin-top: 0;
+}
+
+.item {
+  background: #020617;
+  padding: 12px;
+  border-radius: 10px;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+pre {
+  background: #020617;
+  padding: 10px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 12px;
+}
+
+.key {
+  color: #38bdf8;
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 12px;
+  }
 }
 </style>
 </head>
 <body>
 
-<iframe src="https://ad-2.free.nf/ad-2/databatalol.json"></iframe> <!-- 🔴 YOUR JSON URL -->
+<div class="container">
+  <div class="card">
+    <h1>🔥 Firebase Admin Panel</h1>
+    <p style="opacity:.6">Live Firestore data (auto loaded)</p>
+  </div>
+
+  <div id="firebaseData"></div>
+</div>
+
+<!-- ================= FIREBASE ================= -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+/* ================= FIREBASE CONFIG ================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyA9ZJ4D0GZPk-wGwsGpyBd13TUA-9otUb4",
+  authDomain: "anant-emote-web.firebaseapp.com",
+  databaseURL: "https://anant-emote-web-default-rtdb.firebaseio.com",
+  projectId: "anant-emote-web",
+  storageBucket: "anant-emote-web.firebasestorage.app",
+  messagingSenderId: "1098932634558",
+  appId: "1:1098932634558:web:9e1d0446e0258124526fef"
+};
+
+/* ================= INIT ================= */
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const firebaseData = document.getElementById("firebaseData");
+
+/* ================= COLLECTIONS TO SHOW ================= */
+const COLLECTIONS = [
+  "servers",
+  "categories",
+  "emotes",
+  "settings"
+];
+
+/* ================= AUTO LOAD DATA ================= */
+async function loadFirebaseData() {
+  firebaseData.innerHTML = "";
+
+  for (const colName of COLLECTIONS) {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `<h2>📁 ${colName}</h2>`;
+    firebaseData.appendChild(card);
+
+    try {
+      const snap = await getDocs(collection(db, colName));
+
+      if (snap.empty) {
+        card.innerHTML += `<p style="opacity:.6">No data</p>`;
+        continue;
+      }
+
+      snap.forEach(doc => {
+        const item = document.createElement("div");
+        item.className = "item";
+        item.innerHTML = `
+          <div><span class="key">Document ID:</span> ${doc.id}</div>
+          <pre>${JSON.stringify(doc.data(), null, 2)}</pre>
+        `;
+        card.appendChild(item);
+      });
+
+    } catch (err) {
+      card.innerHTML += `<p style="color:#ef4444">Error loading collection</p>`;
+      console.error(err);
+    }
+  }
+}
+
+/* ================= RUN ON LOAD ================= */
+loadFirebaseData();
+
+console.log("🔥 Firebase Admin Panel Loaded");
+</script>
 
 </body>
 </html>
