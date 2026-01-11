@@ -20,7 +20,6 @@ body{
   background:var(--bg);
   color:#e5e7eb;
 }
-.hidden{display:none}
 .container{max-width:1200px;margin:auto;padding:20px}
 .card{
   background:var(--card);
@@ -59,18 +58,7 @@ button.danger{background:var(--danger)}
   padding:6px 10px;
   margin-left:6px;
 }
-.region-header{margin-top:15px}
 .no-data{color:var(--gray)}
-#adminLoader{
-  position:fixed;
-  inset:0;
-  background:rgba(2,6,23,.85);
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-size:20px;
-  z-index:9999;
-}
 .db-col{
   background:#020617;
   padding:12px;
@@ -90,11 +78,10 @@ button.danger{background:var(--danger)}
 }
 </style>
 </head>
+
 <body>
 
-<div id="adminLoader" class="hidden">⏳ Loading…</div>
-
-<div class="container" id="adminDashboard">
+<div class="container">
 
 <h1>🔥 NOVRA X Admin Panel</h1>
 
@@ -102,18 +89,15 @@ button.danger{background:var(--danger)}
 <div class="card">
 <h2>🖥 Servers</h2>
 <form id="serverForm">
-<input type="hidden" id="editServerId">
-<input id="serverName" placeholder="Server Name" required>
-<input id="serverUrl" placeholder="Base URL" required>
-<select id="serverRegion" required>
+<input id="serverName" placeholder="Server Name">
+<input id="serverUrl" placeholder="Base URL">
+<select id="serverRegion">
 <option value="">Select Region</option>
 <option value="indian">Indian</option>
 <option value="bangladesh">Bangladesh</option>
 <option value="other">Other</option>
 </select>
-<input id="serverOrder" type="number" placeholder="Order">
-<button id="serverBtnText">ADD SERVER</button>
-<button type="button" id="cancelServerEdit" class="danger hidden">Cancel</button>
+<button>Add Server</button>
 </form>
 <div id="serverList"></div>
 </div>
@@ -122,12 +106,9 @@ button.danger{background:var(--danger)}
 <div class="card">
 <h2>📂 Categories</h2>
 <form id="categoryForm">
-<input type="hidden" id="editCategoryId">
-<input id="categoryName" placeholder="Category Name" required>
+<input id="categoryName" placeholder="Category Name">
 <input id="categoryIcon" placeholder="Icon (🔥)">
-<input id="categoryOrder" type="number" placeholder="Order">
-<button id="categoryBtnText">ADD CATEGORY</button>
-<button type="button" id="cancelCategoryEdit" class="danger hidden">Cancel</button>
+<button>Add Category</button>
 </form>
 <div id="categoryList"></div>
 </div>
@@ -136,51 +117,26 @@ button.danger{background:var(--danger)}
 <div class="card">
 <h2>😀 Emotes</h2>
 <form id="emoteForm">
-<input type="hidden" id="editEmoteId">
-<input id="emoteImageUrl" placeholder="Image URL" required>
+<input id="emoteImageUrl" placeholder="Image URL">
 <select id="emoteCategory"></select>
-<div id="emotePreview"></div>
-<button id="emoteBtnText">ADD EMOTE</button>
-<button type="button" id="cancelEmoteEdit" class="danger hidden">Cancel</button>
+<button>Add Emote</button>
 </form>
 <div id="emoteList"></div>
 </div>
 
-<!-- FOOTER LINKS -->
+<!-- SETTINGS -->
 <div class="card">
-<h2>🔗 Footer Links</h2>
-<form id="linksForm">
+<h2>⚙ Settings</h2>
 <input id="telegramUrl" placeholder="Telegram">
 <input id="githubUrl" placeholder="GitHub">
 <input id="discordUrl" placeholder="Discord">
 <input id="youtubeUrl" placeholder="YouTube">
-<button>Save Links</button>
-</form>
+<button id="saveLinks">Save Links</button>
 </div>
 
-<!-- MAINTENANCE -->
+<!-- DATABASE VIEW -->
 <div class="card">
-<h2>🚧 Maintenance</h2>
-<form id="maintenanceForm">
-<label><input type="checkbox" id="maintenanceToggle"> Enable</label>
-<textarea id="maintenanceMessage" placeholder="Message"></textarea>
-<button>Save</button>
-</form>
-</div>
-
-<!-- PASSWORD -->
-<div class="card">
-<h2>🔑 Admin Password</h2>
-<form id="passwordForm">
-<input id="newPassword" type="password" placeholder="New Password" required>
-<button>Update Password</button>
-</form>
-</div>
-
-<!-- DATABASE EXPLORER -->
-<div class="card">
-<h2>🗂 Full Firestore Data (Saved)</h2>
-<p style="opacity:.6">Live database snapshot</p>
+<h2>🗂 Saved Firestore Data</h2>
 <div id="dbExplorer"></div>
 </div>
 
@@ -190,131 +146,58 @@ button.danger{background:var(--danger)}
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
-  getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc,
-  collection, getDocs, addDoc
+  getFirestore, collection, getDocs, addDoc, deleteDoc, doc, setDoc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* FIREBASE */
 const firebaseConfig = {
   apiKey: "AIzaSyA9ZJ4D0GZPk-wGwsGpyBd13TUA-9otUb4",
   authDomain: "anant-emote-web.firebaseapp.com",
-  databaseURL: "https://anant-emote-web-default-rtdb.firebaseio.com",
   projectId: "anant-emote-web",
-  storageBucket: "anant-emote-web.firebasestorage.app",
-  messagingSenderId: "1098932634558",
-  appId: "1:1098932634558:web:9e1d0446e0258124526fef"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-/* LOADER */
-const showLoader=()=>adminLoader.classList.remove("hidden");
-const hideLoader=()=>adminLoader.classList.add("hidden");
-
-/* HASH */
-async function hashPassword(p){
-  const h=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(p));
-  return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,"0")).join("");
-}
-
-/* LOAD ALL */
-async function loadAllData(){
-  showLoader();
-  await loadServers();
-  await loadCategories();
-  await loadCategoryDropdown();
-  await loadEmotes();
-  await loadLinks();
-  await loadMaintenance();
-  await loadDatabaseExplorer();
-  hideLoader();
-}
-
-/* DATABASE EXPLORER */
-const ALL_COLLECTIONS=["servers","categories","emotes","settings"];
-async function loadDatabaseExplorer(){
-  dbExplorer.innerHTML="";
-  for(const colName of ALL_COLLECTIONS){
-    const box=document.createElement("div");
-    box.className="db-col";
-    box.innerHTML=`<h3>📁 ${colName}</h3>`;
-    dbExplorer.appendChild(box);
-    const snap=await getDocs(collection(db,colName));
-    if(snap.empty){
-      box.innerHTML+=`<p class="no-data">No documents</p>`;
-      continue;
-    }
-    snap.forEach(d=>{
-      box.innerHTML+=`
-        <div class="db-doc">
-          <strong>${d.id}</strong>
-          <pre>${JSON.stringify(d.data(),null,2)}</pre>
-        </div>`;
-    });
-  }
-}
-
-/* ===== YOUR CRUD LOGIC ===== */
-/* Servers / Categories / Emotes / Settings */
-/* (Exactly same behavior, omitted repetition explanation for brevity) */
-
-/* ---- SERVERS ---- */
+/* LOAD SERVERS */
 async function loadServers(){
   serverList.innerHTML="";
   const snap=await getDocs(collection(db,"servers"));
-  if(snap.empty){serverList.innerHTML=`<p class="no-data">No servers</p>`;return;}
+  if(snap.empty){serverList.innerHTML="<p class='no-data'>No servers</p>";return;}
   snap.forEach(d=>{
-    const s=d.data();
-    const el=document.createElement("div");
-    el.className="admin-item";
-    el.innerHTML=`
-      <div>
-        <strong>${s.name}</strong>
-        <div style="font-size:12px;color:var(--gray)">${s.baseUrl}</div>
-      </div>
-      <div class="admin-item-actions">
-        <button class="danger" onclick="deleteServer('${d.id}')">✖</button>
-      </div>`;
-    serverList.appendChild(el);
+    serverList.innerHTML+=`
+    <div class="admin-item">
+      <strong>${d.data().name}</strong>
+      <button class="danger" onclick="deleteServer('${d.id}')">✖</button>
+    </div>`;
   });
 }
 window.deleteServer=async id=>{
-  if(confirm("Delete server?")){
-    await deleteDoc(doc(db,"servers",id));
-    loadAllData();
-  }
+  await deleteDoc(doc(db,"servers",id));
+  loadAll();
 };
 
-/* ---- CATEGORIES ---- */
+/* LOAD CATEGORIES */
 async function loadCategories(){
   categoryList.innerHTML="";
+  emoteCategory.innerHTML="";
   const snap=await getDocs(collection(db,"categories"));
   snap.forEach(d=>{
-    categoryList.innerHTML+=`<div class="admin-item"><strong>${d.data().name}</strong></div>`;
-  });
-}
-async function loadCategoryDropdown(){
-  emoteCategory.innerHTML="<option>Select Category</option>";
-  const snap=await getDocs(collection(db,"categories"));
-  snap.forEach(d=>{
-    const o=document.createElement("option");
-    o.value=d.id;o.textContent=d.data().name;
-    emoteCategory.appendChild(o);
+    categoryList.innerHTML+=`<div class="admin-item">${d.data().name}</div>`;
+    emoteCategory.innerHTML+=`<option value="${d.id}">${d.data().name}</option>`;
   });
 }
 
-/* ---- EMOTES ---- */
+/* LOAD EMOTES */
 async function loadEmotes(){
   emoteList.innerHTML="";
   const snap=await getDocs(collection(db,"emotes"));
   snap.forEach(d=>{
-    emoteList.innerHTML+=`<div class="admin-item"><strong>${d.data().emoteId}</strong></div>`;
+    emoteList.innerHTML+=`<div class="admin-item">${d.data().emoteId || d.id}</div>`;
   });
 }
 
-/* ---- SETTINGS ---- */
-async function loadLinks(){
+/* LOAD SETTINGS */
+async function loadSettings(){
   const s=await getDoc(doc(db,"settings","footerLinks"));
   if(s.exists()){
     telegramUrl.value=s.data().telegram||"";
@@ -323,17 +206,75 @@ async function loadLinks(){
     youtubeUrl.value=s.data().youtube||"";
   }
 }
-async function loadMaintenance(){
-  const s=await getDoc(doc(db,"settings","maintenance"));
-  if(s.exists()){
-    maintenanceToggle.checked=s.data().enabled||false;
-    maintenanceMessage.value=s.data().message||"";
+
+/* DATABASE VIEW */
+async function loadDatabaseExplorer(){
+  dbExplorer.innerHTML="";
+  const collections=["servers","categories","emotes","settings"];
+  for(const c of collections){
+    const snap=await getDocs(collection(db,c));
+    dbExplorer.innerHTML+=`<div class="db-col"><h3>${c}</h3></div>`;
+    snap.forEach(d=>{
+      dbExplorer.innerHTML+=`
+      <div class="db-doc">
+        <strong>${d.id}</strong>
+        <pre>${JSON.stringify(d.data(),null,2)}</pre>
+      </div>`;
+    });
   }
 }
 
+/* FORMS */
+serverForm.onsubmit=async e=>{
+  e.preventDefault();
+  await addDoc(collection(db,"servers"),{
+    name:serverName.value,
+    baseUrl:serverUrl.value,
+    region:serverRegion.value
+  });
+  serverForm.reset();
+  loadAll();
+};
+
+categoryForm.onsubmit=async e=>{
+  e.preventDefault();
+  await addDoc(collection(db,"categories"),{
+    name:categoryName.value,
+    icon:categoryIcon.value
+  });
+  categoryForm.reset();
+  loadAll();
+};
+
+emoteForm.onsubmit=async e=>{
+  e.preventDefault();
+  await addDoc(collection(db,"emotes"),{
+    image:emoteImageUrl.value,
+    category:emoteCategory.value
+  });
+  emoteForm.reset();
+  loadAll();
+};
+
+saveLinks.onclick=async()=>{
+  await setDoc(doc(db,"settings","footerLinks"),{
+    telegram:telegramUrl.value,
+    github:githubUrl.value,
+    discord:discordUrl.value,
+    youtube:youtubeUrl.value
+  });
+  alert("Saved");
+};
+
 /* INIT */
-loadAllData();
-console.log("🔥 Admin panel loaded (NO LOGIN)");
+async function loadAll(){
+  await loadServers();
+  await loadCategories();
+  await loadEmotes();
+  await loadSettings();
+  await loadDatabaseExplorer();
+}
+loadAll();
 </script>
 
 </body>
