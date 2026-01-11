@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Admin Panel – All Firebase Data</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #020617;
+  color: #e5e7eb;
+}
+.container {
+  max-width: 1200px;
+  margin: auto;
+  padding: 20px;
+}
+.card {
+  background: #0f172a;
+  padding: 16px;
+  border-radius: 14px;
+  margin-bottom: 20px;
+}
+h1, h2 {
+  margin: 0 0 10px;
+}
+.item {
+  background: #020617;
+  padding: 12px;
+  border-radius: 10px;
+  margin-top: 10px;
+  font-size: 14px;
+}
+pre {
+  background: #020617;
+  padding: 10px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 12px;
+  color: #c7d2fe;
+}
+.key {
+  color: #38bdf8;
+}
+.badge {
+  font-size: 11px;
+  opacity: .6;
+}
+@media (max-width: 600px) {
+  .container { padding: 12px; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="card">
+    <h1>🔥 Firebase Admin – All Data</h1>
+    <p class="badge">Loaded directly from Firestore (based on app code)</p>
+  </div>
+
+  <div id="firebaseData"></div>
+</div>
+
+<!-- ================= FIREBASE ================= -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { 
+  getFirestore,
+  collection,
+  getDocs,
+  doc,
+  getDoc
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+/* ================= FIREBASE CONFIG ================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyA9ZJ4D0GZPk-wGwsGpyBd13TUA-9otUb4",
+  authDomain: "anant-emote-web.firebaseapp.com",
+  projectId: "anant-emote-web",
+  storageBucket: "anant-emote-web.firebasestorage.app",
+  messagingSenderId: "1098932634558",
+  appId: "1:1098932634558:web:9e1d0446e0258124526fef"
+};
+
+/* ================= INIT ================= */
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const firebaseData = document.getElementById("firebaseData");
+
+/* ================= STRUCTURE (FROM YOUR CODE) ================= */
+const FIRESTORE_STRUCTURE = {
+  servers: { type: "collection" },
+  categories: { type: "collection" },
+  emotes: { type: "collection" },
+  settings: {
+    type: "documents",
+    docs: [
+      "footerLinks",
+      "maintenance",
+      "loginPassword"
+    ]
+  }
+};
+
+/* ================= LOAD EVERYTHING ================= */
+async function loadAllData() {
+  firebaseData.innerHTML = "";
+
+  for (const [name, config] of Object.entries(FIRESTORE_STRUCTURE)) {
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `<h2>📁 ${name}</h2>`;
+    firebaseData.appendChild(card);
+
+    try {
+      // COLLECTIONS
+      if (config.type === "collection") {
+        const snap = await getDocs(collection(db, name));
+
+        if (snap.empty) {
+          card.innerHTML += `<p class="badge">No documents</p>`;
+          continue;
+        }
+
+        snap.forEach(d => {
+          card.innerHTML += `
+            <div class="item">
+              <div><span class="key">Document ID:</span> ${d.id}</div>
+              <pre>${JSON.stringify(d.data(), null, 2)}</pre>
+            </div>
+          `;
+        });
+      }
+
+      // FIXED DOCUMENTS
+      if (config.type === "documents") {
+        for (const docName of config.docs) {
+          const snap = await getDoc(doc(db, name, docName));
+          if (!snap.exists()) continue;
+
+          card.innerHTML += `
+            <div class="item">
+              <div><span class="key">Document:</span> ${docName}</div>
+              <pre>${JSON.stringify(snap.data(), null, 2)}</pre>
+            </div>
+          `;
+        }
+      }
+    } catch (err) {
+      card.innerHTML += `<p style="color:#ef4444">Error loading data</p>`;
+      console.error(err);
+    }
+  }
+}
+
+/* ================= RUN ================= */
+loadAllData();
+console.log("🔥 Admin All-Data Viewer Loaded");
+</script>
+
+</body>
+</html>
